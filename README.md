@@ -1,607 +1,254 @@
-## Vamos refatorar toda a API para funcionar com base no diagrama ER fornecido e usando MySQL. Primeiro, criaremos um script Python para configurar o banco de dados MySQL localmente. Em seguida, refatoraremos a API para utilizar Sequelize como ORM para interagir com o MySQL.
 
-### 1. Script Python para Criação do Banco de Dados
+# Online Store API
 
-```python
-import mysql.connector
+Este projeto implementa uma API RESTful para uma loja online, desenvolvida com Node.js e Express, com um frontend React para clientes e administradores. A API permite que os clientes se registrem, consultem produtos disponíveis, realizem e listem seus pedidos. Os administradores têm acesso a recursos adicionais para gerenciamento de produtos e pedidos.
 
-def create_database():
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="password"
-    )
-    
-    cursor = conn.cursor()
-    cursor.execute("DROP DATABASE IF EXISTS online_store")
-    cursor.execute("CREATE DATABASE online_store")
-    cursor.execute("USE online_store")
-    
-    cursor.execute("""
-        CREATE TABLE cidades (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(50) NOT NULL
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE TABLE categorias (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(100) NOT NULL
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE TABLE clientes (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(100) NOT NULL,
-            altura DOUBLE,
-            nascim_tb DATE,
-            cidade_id INT,
-            FOREIGN KEY (cidade_id) REFERENCES cidades(id)
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE TABLE produtos (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(100) NOT NULL,
-            preco DOUBLE NOT NULL,
-            quantidade DOUBLE NOT NULL,
-            categoria_id INT,
-            FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE TABLE pedidos (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            horario DATETIME NOT NULL,
-            endereco VARCHAR(200) NOT NULL,
-            cliente_id INT,
-            FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-        )
-    """)
-    
-    cursor.execute("""
-        CREATE TABLE pedidos_produtos (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            pedido_id INT,
-            produto_id INT,
-            preco DOUBLE NOT NULL,
-            quantidade DOUBLE NOT NULL,
-            FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
-            FOREIGN KEY (produto_id) REFERENCES produtos(id)
-        )
-    """)
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
+## Índice
 
-if __name__ == "__main__":
-    create_database()
+- [Online Store API](#online-store-api)
+  - [Índice](#índice)
+  - [Tecnologias Utilizadas](#tecnologias-utilizadas)
+  - [Instalação](#instalação)
+  - [Configuração](#configuração)
+  - [Endpoints da API](#endpoints-da-api)
+    - [Clientes](#clientes)
+    - [Produtos](#produtos)
+    - [Pedidos](#pedidos)
+    - [Administradores](#administradores)
+  - [Frontend](#frontend)
+    - [Instalação do Frontend](#instalação-do-frontend)
+    - [Componentes Principais](#componentes-principais)
+  - [Contribuição](#contribuição)
+  - [Licença](#licença)
+
+## Tecnologias Utilizadas
+
+- Node.js
+- Express
+- MySQL
+- React
+- Axios
+- JWT (Json Web Token)
+- Bcrypt
+- Dotenv
+- Cors
+
+## Instalação
+
+1. Clone o repositório:
+
+```bash
+git clone https://github.com/seu-usuario/online-store-api.git
+cd online-store-api
 ```
 
-### 2. Configuração da API usando Sequelize e MySQL
+2. Instale as dependências do backend:
 
-#### Instalação de Dependências
-
-```sh
-npm install express body-parser mysql2 sequelize jsonwebtoken bcryptjs
+```bash
+npm install
 ```
 
-#### Estrutura de Diretórios
+3. Configure as variáveis de ambiente criando um arquivo `.env` na raiz do projeto com as seguintes informações:
 
-```plaintext
-src/
-├── config/
-│   └── db.js
-├── controllers/
-│   ├── authController.js
-│   ├── productController.js
-│   ├── orderController.js
-│   └── adminController.js
-├── middlewares/
-│   └── auth.js
-├── models/
-│   ├── index.js
-│   ├── user.js
-│   ├── product.js
-│   ├── order.js
-│   ├── cidade.js
-│   ├── categoria.js
-│   ├── pedidoProduto.js
-│   └── associations.js
-├── routes/
-│   ├── auth.js
-│   ├── products.js
-│   ├── orders.js
-│   └── admin.js
-├── app.js
-└── server.js
 ```
-
-#### Configuração do Sequelize
-
-```javascript
-// src/config/db.js
-const { Sequelize } = require('sequelize');
-
-const sequelize = new Sequelize('online_store', 'root', 'password', {
-    host: 'localhost',
-    dialect: 'mysql'
-});
-
-module.exports = sequelize;
-```
-
-#### Definição dos Modelos
-
-```javascript
-// src/models/user.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    nome: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    altura: {
-        type: DataTypes.DOUBLE,
-    },
-    nascim_tb: {
-        type: DataTypes.DATE,
-    },
-    cidade_id: {
-        type: DataTypes.INTEGER,
-    }
-});
-
-module.exports = User;
-
-// src/models/product.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const Product = sequelize.define('Product', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    nome: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    preco: {
-        type: DataTypes.DOUBLE,
-        allowNull: false
-    },
-    quantidade: {
-        type: DataTypes.DOUBLE,
-        allowNull: false
-    },
-    categoria_id: {
-        type: DataTypes.INTEGER,
-    }
-});
-
-module.exports = Product;
-
-// src/models/order.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const Order = sequelize.define('Order', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    horario: {
-        type: DataTypes.DATE,
-        allowNull: false
-    },
-    endereco: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    cliente_id: {
-        type: DataTypes.INTEGER,
-    }
-});
-
-module.exports = Order;
-
-// src/models/cidade.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const Cidade = sequelize.define('Cidade', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    nome: {
-        type: DataTypes.STRING,
-        allowNull: false
-    }
-});
-
-module.exports = Cidade;
-
-// src/models/categoria.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const Categoria = sequelize.define('Categoria', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    nome: {
-        type: DataTypes.STRING,
-        allowNull: false
-    }
-});
-
-module.exports = Categoria;
-
-// src/models/pedidoProduto.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
-
-const PedidoProduto = sequelize.define('PedidoProduto', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    pedido_id: {
-        type: DataTypes.INTEGER,
-    },
-    produto_id: {
-        type: DataTypes.INTEGER,
-    },
-    preco: {
-        type: DataTypes.DOUBLE,
-        allowNull: false
-    },
-    quantidade: {
-        type: DataTypes.DOUBLE,
-        allowNull: false
-    }
-});
-
-module.exports = PedidoProduto;
-
-// src/models/associations.js
-const User = require('./user');
-const Product = require('./product');
-const Order = require('./order');
-const Cidade = require('./cidade');
-const Categoria = require('./categoria');
-const PedidoProduto = require('./pedidoProduto');
-
-User.belongsTo(Cidade, { foreignKey: 'cidade_id' });
-Cidade.hasMany(User, { foreignKey: 'cidade_id' });
-
-Order.belongsTo(User, { foreignKey: 'cliente_id' });
-User.hasMany(Order, { foreignKey: 'cliente_id' });
-
-Order.belongsToMany(Product, { through: PedidoProduto, foreignKey: 'pedido_id' });
-Product.belongsToMany(Order, { through: PedidoProduto, foreignKey: 'produto_id' });
-
-Product.belongsTo(Categoria, { foreignKey: 'categoria_id' });
-Categoria.hasMany(Product, { foreignKey: 'categoria_id' });
-
-module.exports = {
-    User,
-    Product,
-    Order,
-    Cidade,
-    Categoria,
-    PedidoProduto
-};
-```
-
-#### Controladores
-
-```javascript
-// src/controllers/authController.js
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
-
-exports.register = async (req, res) => {
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashedPassword });
-    res.json(user);
-};
-
-exports.login = async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ where: { username } });
-    if (!user || !await bcrypt.compare(password, user.password)) {
-        return res.status(400).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, 'secret_key');
-    res.json({ token });
-};
-
-// src/controllers/productController.js
-const Product = require('../models/product');
-
-exports.getAllProducts = async (req, res) => {
-    const products = await Product.findAll();
-    res.json(products);
-};
-
-// src/controllers/orderController.js
-const Order = require('../models/order');
-const PedidoProduto = require('../models/pedidoProduto');
-
-exports.createOrder = async (req, res) => {
-    const { horario, endereco, cliente_id, products } = req.body;
-    const order = await Order.create({ horario, endereco, cliente_id });
-    for (const product of products) {
-        await PedidoProduto.create({ pedido_id: order.id, produto_id: product.id, preco: product.preco, quantidade: product.quantidade });
-    }
-    res.status(201).json(order);
-};
-
-exports.getAllOrders = async (req, res) => {
-    const orders = await Order.findAll();
-    res.json(orders
-
-);
-};
-
-// src/controllers/adminController.js
-const User = require('../models/user');
-
-exports.getAllUsers = async (req, res) => {
-    const users = await User.findAll();
-    res.json(users);
-};
-```
-
-#### Middlewares
-
-```javascript
-// src/middlewares/auth.js
-const jwt = require('jsonwebtoken');
-
-exports.authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ error: 'Access denied' });
-
-    try {
-        const verified = jwt.verify(token, 'secret_key');
-        req.user = verified;
-        next();
-    } catch (err) {
-        res.status(400).json({ error: 'Invalid token' });
-    }
-};
-```
-
-#### Rotas
-
-```javascript
-// src/routes/auth.js
-const express = require('express');
-const { register, login } = require('../controllers/authController');
-const router = express.Router();
-
-router.post('/register', register);
-router.post('/login', login);
-
-module.exports = router;
-
-// src/routes/products.js
-const express = require('express');
-const { getAllProducts } = require('../controllers/productController');
-const router = express.Router();
-
-router.get('/', getAllProducts);
-
-module.exports = router;
-
-// src/routes/orders.js
-const express = require('express');
-const { createOrder, getAllOrders } = require('../controllers/orderController');
-const { authenticateToken } = require('../middlewares/auth');
-const router = express.Router();
-
-router.post('/', authenticateToken, createOrder);
-router.get('/', authenticateToken, getAllOrders);
-
-module.exports = router;
-
-// src/routes/admin.js
-const express = require('express');
-const { getAllUsers } = require('../controllers/adminController');
-const { authenticateToken } = require('../middlewares/auth');
-const router = express.Router();
-
-router.get('/users', authenticateToken, getAllUsers);
-
-module.exports = router;
-```
-
-#### Arquivos de Inicialização
-
-```javascript
-// src/app.js
-const express = require('express');
-const bodyParser = require('body-parser');
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
-const orderRoutes = require('./routes/orders');
-const adminRoutes = require('./routes/admin');
-
-const app = express();
-
-app.use(bodyParser.json());
-app.use('/auth', authRoutes);
-app.use('/products', productRoutes);
-app.use('/orders', orderRoutes);
-app.use('/admin', adminRoutes);
-
-module.exports = app;
-
-// src/server.js
-const sequelize = require('./config/db');
-const app = require('./app');
-
-const PORT = process.env.PORT || 3000;
-
-sequelize.sync().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-});
-```
-
-### Próximos Passos
-
-1. **a.** Executar o script Python para criar e configurar o banco de dados MySQL.
-2. **b.** Configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados.
-
-Essas etapas garantem que a API está configurada corretamente e que todas as operações CRUD funcionam conforme o esperado.
-
-## Para configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados, vamos seguir estes passos:
-
-### 1. Instalar o Dotenv
-
-Primeiro, precisamos instalar a biblioteca `dotenv` para carregar variáveis de ambiente a partir de um arquivo `.env`.
-
-```sh
-npm install dotenv
-```
-
-### 2. Criar um Arquivo `.env`
-
-Na raiz do seu projeto, crie um arquivo chamado `.env` e adicione suas variáveis de ambiente nele. Por exemplo:
-
-```plaintext
-# .env
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=password
+DB_PASS=password
 DB_NAME=online_store
-JWT_SECRET=your_secret_key
+JWT_SECRET=sua_chave_secreta
 PORT=3000
 ```
 
-### 3. Modificar a Configuração do Banco de Dados e JWT para Usar Variáveis de Ambiente
+4. Inicialize o servidor:
 
-Modifique seus arquivos de configuração e inicialização para usar as variáveis de ambiente.
-
-#### Configuração do Sequelize
-
-```javascript
-// src/config/db.js
-const { Sequelize } = require('sequelize');
-require('dotenv').config();
-
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-    host: process.env.DB_HOST,
-    dialect: 'mysql'
-});
-
-module.exports = sequelize;
+```bash
+npm start
 ```
 
-#### Middleware de Autenticação JWT
+## Configuração
 
-```javascript
-// src/middlewares/auth.js
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+Certifique-se de que você tenha um servidor MySQL rodando e as credenciais corretas no arquivo `.env`.
 
-exports.authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ error: 'Access denied' });
+Crie o banco de dados e as tabelas necessárias utilizando o script fornecido na pasta `scripts`:
 
-    try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = verified;
-        next();
-    } catch (err) {
-        res.status(400).json({ error: 'Invalid token' });
-    }
-};
+```sql
+-- scripts/init_db.sql
+
+CREATE DATABASE IF NOT EXISTS online_store;
+
+USE online_store;
+
+CREATE TABLE cidades (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    altura DOUBLE,
+    nascim_tb DATE,
+    cidade_id INT,
+    FOREIGN KEY (cidade_id) REFERENCES cidades(id)
+);
+
+CREATE TABLE produtos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    preco DOUBLE NOT NULL,
+    quantidade DOUBLE NOT NULL,
+    categoria_id INT,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+);
+
+CREATE TABLE pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    horario DATETIME NOT NULL,
+    endereco VARCHAR(200) NOT NULL,
+    cliente_id INT,
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
+
+CREATE TABLE pedidos_produtos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT,
+    produto_id INT,
+    preco DOUBLE NOT NULL,
+    quantidade DOUBLE NOT NULL,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+    FOREIGN KEY (produto_id) REFERENCES produtos(id)
+);
 ```
 
-#### Controlador de Autenticação
+## Endpoints da API
 
-```javascript
-// src/controllers/authController.js
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
-require('dotenv').config();
+### Clientes
 
-exports.register = async (req, res) => {
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashedPassword });
-    res.json(user);
-};
+- **POST /clientes/register** - Registro de novos clientes
 
-exports.login = async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ where: { username } });
-    if (!user || !await bcrypt.compare(password, user.password)) {
-        return res.status(400).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
-    res.json({ token });
-};
+  ```json
+  {
+    "nome": "John Doe",
+    "email": "john.doe@example.com",
+    "password": "password123"
+  }
+  ```
+
+- **POST /clientes/login** - Login de clientes
+
+  ```json
+  {
+    "email": "john.doe@example.com",
+    "password": "password123"
+  }
+  ```
+
+### Produtos
+
+- **GET /produtos** - Consulta de produtos disponíveis
+
+### Pedidos
+
+- **POST /pedidos** - Realização de um pedido
+
+  ```json
+  {
+    "horario": "2024-06-18T12:00:00",
+    "endereco": "123 Main St",
+    "cliente_id": 1,
+    "produtos": [
+      {
+        "produto_id": 1,
+        "quantidade": 2,
+        "preco": 19.99
+      }
+    ]
+  }
+  ```
+
+- **GET /pedidos** - Consulta de pedidos realizados
+
+### Administradores
+
+Os endpoints de administrador requerem autenticação JWT com a role `admin`.
+
+- **GET /admin/produtos** - Listar todos os produtos
+
+- **POST /admin/produtos** - Criar um novo produto
+
+  ```json
+  {
+    "nome": "Produto X",
+    "preco": 29.99,
+    "quantidade": 100,
+    "categoria_id": 1
+  }
+  ```
+
+- **PUT /admin/produtos/:id** - Atualizar um produto
+
+  ```json
+  {
+    "nome": "Produto X",
+    "preco": 25.99,
+    "quantidade": 150,
+    "categoria_id": 1
+  }
+  ```
+
+- **DELETE /admin/produtos/:id** - Excluir um produto
+
+- **GET /admin/pedidos** - Listar todos os pedidos
+
+- **PUT /admin/pedidos/:id** - Atualizar um pedido
+
+  ```json
+  {
+    "status": "entregue"
+  }
+  ```
+
+## Frontend
+
+### Instalação do Frontend
+
+1. Navegue para o diretório do frontend e instale as dependências:
+
+```bash
+cd online-store-frontend
+npm install
 ```
 
-#### Arquivo de Inicialização do Servidor
+2. Inicialize o frontend:
 
-```javascript
-// src/server.js
-require('dotenv').config();
-const sequelize = require('./config/db');
-const app = require('./app');
-
-const PORT = process.env.PORT || 3000;
-
-sequelize.sync().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-});
+```bash
+npm start
 ```
 
-### Verificação
+### Componentes Principais
 
-1. **Verificar o `.env`:** Certifique-se de que o arquivo `.env` está corretamente preenchido com os valores necessários.
-2. **Ignorar o `.env` no Controle de Versão:** Adicione o `.env` ao arquivo `.gitignore` para garantir que ele não seja enviado ao controle de versão.
+- **Register.js** - Componente para registro de novos clientes
+- **Login.js** - Componente para login de clientes
+- **ProductList.js** - Componente para listar produtos disponíveis
+- **OrderList.js** - Componente para listar pedidos do cliente
+- **AdminProductList.js** - Componente para administradores gerenciarem produtos
+- **AdminOrderList.js** - Componente para administradores gerenciarem pedidos
 
-```plaintext
-# .gitignore
-node_modules/
-.env
-```
+## Contribuição
 
-### Próximos Passos
+1. Faça um fork do projeto
+2. Crie uma nova branch (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
 
-**a.** Testar a configuração para garantir que todas as variáveis de ambiente estão sendo carregadas corretamente e que a aplicação está funcionando conforme esperado.
+## Licença
 
-**b.** Implementar logs para melhor monitoramento e depuração do servidor.
+Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
