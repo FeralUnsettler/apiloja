@@ -1188,4 +1188,4 @@ export default App;
 
 ### Conclusão
 
-Com estas alterações, a aplicação frontend agora possui
+Com estas alterações, a aplicação frontend agora possui a autenticação e autorização utilizando JWT para administradores
