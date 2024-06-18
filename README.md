@@ -1,20 +1,6 @@
-## API RESTful 
+Vamos refatorar toda a API para funcionar com base no diagrama ER fornecido e usando MySQL. Primeiro, criaremos um script Python para configurar o banco de dados MySQL localmente. Em seguida, refatoraremos a API para utilizar Sequelize como ORM para interagir com o MySQL.
 
-
-### Plano Detalhado:
-
-1. **Configuração do Banco de Dados:**
-   - Configurar um banco de dados MySQL local.
-   - Criar tabelas conforme o diagrama ER fornecido.
-
-2. **Atualização da API para usar MySQL:**
-   - Modificar os modelos para se comunicar com o MySQL em vez do MongoDB.
-   - Utilizar o Sequelize como ORM para interagir com o banco de dados MySQL.
-
-3. **Script Python para Criação do Banco de Dados:**
-   - Escrever um script Python para criar e popular o banco de dados localmente.
-
-### Script Python para Criação do Banco de Dados:
+### 1. Script Python para Criação do Banco de Dados
 
 ```python
 import mysql.connector
@@ -97,14 +83,46 @@ if __name__ == "__main__":
     create_database()
 ```
 
-### Atualização da API para Utilizar Sequelize com MySQL
+### 2. Configuração da API usando Sequelize e MySQL
 
-1. **Instalação de Dependências:**
-   ```sh
-   npm install mysql2 sequelize
-   ```
+#### Instalação de Dependências
 
-2. **Configuração do Sequelize:**
+```sh
+npm install express body-parser mysql2 sequelize jsonwebtoken bcryptjs
+```
+
+#### Estrutura de Diretórios
+
+```plaintext
+src/
+├── config/
+│   └── db.js
+├── controllers/
+│   ├── authController.js
+│   ├── productController.js
+│   ├── orderController.js
+│   └── adminController.js
+├── middlewares/
+│   └── auth.js
+├── models/
+│   ├── index.js
+│   ├── user.js
+│   ├── product.js
+│   ├── order.js
+│   ├── cidade.js
+│   ├── categoria.js
+│   ├── pedidoProduto.js
+│   └── associations.js
+├── routes/
+│   ├── auth.js
+│   ├── products.js
+│   ├── orders.js
+│   └── admin.js
+├── app.js
+└── server.js
+```
+
+#### Configuração do Sequelize
 
 ```javascript
 // src/config/db.js
@@ -118,7 +136,7 @@ const sequelize = new Sequelize('online_store', 'root', 'password', {
 module.exports = sequelize;
 ```
 
-3. **Definição dos Modelos:**
+#### Definição dos Modelos
 
 ```javascript
 // src/models/user.js
@@ -131,18 +149,18 @@ const User = sequelize.define('User', {
         autoIncrement: true,
         primaryKey: true
     },
-    username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    password: {
+    nome: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    isAdmin: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+    altura: {
+        type: DataTypes.DOUBLE,
+    },
+    nascim_tb: {
+        type: DataTypes.DATE,
+    },
+    cidade_id: {
+        type: DataTypes.INTEGER,
     }
 });
 
@@ -158,20 +176,20 @@ const Product = sequelize.define('Product', {
         autoIncrement: true,
         primaryKey: true
     },
-    name: {
+    nome: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    description: {
-        type: DataTypes.STRING,
-    },
-    price: {
+    preco: {
         type: DataTypes.DOUBLE,
         allowNull: false
     },
-    stock: {
+    quantidade: {
         type: DataTypes.DOUBLE,
         allowNull: false
+    },
+    categoria_id: {
+        type: DataTypes.INTEGER,
     }
 });
 
@@ -194,6 +212,9 @@ const Order = sequelize.define('Order', {
     endereco: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    cliente_id: {
+        type: DataTypes.INTEGER,
     }
 });
 
@@ -245,6 +266,12 @@ const PedidoProduto = sequelize.define('PedidoProduto', {
         autoIncrement: true,
         primaryKey: true
     },
+    pedido_id: {
+        type: DataTypes.INTEGER,
+    },
+    produto_id: {
+        type: DataTypes.INTEGER,
+    },
     preco: {
         type: DataTypes.DOUBLE,
         allowNull: false
@@ -265,15 +292,17 @@ const Cidade = require('./cidade');
 const Categoria = require('./categoria');
 const PedidoProduto = require('./pedidoProduto');
 
-User.hasMany(Order, { foreignKey: 'cliente_id' });
+User.belongsTo(Cidade, { foreignKey: 'cidade_id' });
+Cidade.hasMany(User, { foreignKey: 'cidade_id' });
+
 Order.belongsTo(User, { foreignKey: 'cliente_id' });
+User.hasMany(Order, { foreignKey: 'cliente_id' });
 
 Order.belongsToMany(Product, { through: PedidoProduto, foreignKey: 'pedido_id' });
 Product.belongsToMany(Order, { through: PedidoProduto, foreignKey: 'produto_id' });
 
 Product.belongsTo(Categoria, { foreignKey: 'categoria_id' });
-Cidade.hasMany(User, { foreignKey: 'cidade_id' });
-User.belongsTo(Cidade, { foreignKey: 'cidade_id' });
+Categoria.hasMany(Product, { foreignKey: 'categoria_id' });
 
 module.exports = {
     User,
@@ -285,48 +314,169 @@ module.exports = {
 };
 ```
 
-4. **Sincronização dos Modelos:**
+#### Controladores
+
+```javascript
+// src/controllers/authController.js
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
+
+exports.register = async (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, password: hashedPassword });
+    res.json(user);
+};
+
+exports.login = async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ where: { username } });
+    if (!user || !await bcrypt.compare(password, user.password)) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, 'secret_key');
+    res.json({ token });
+};
+
+// src/controllers/productController.js
+const Product = require('../models/product');
+
+exports.getAllProducts = async (req, res) => {
+    const products = await Product.findAll();
+    res.json(products);
+};
+
+// src/controllers/orderController.js
+const Order = require('../models/order');
+const PedidoProduto = require('../models/pedidoProduto');
+
+exports.createOrder = async (req, res) => {
+    const { horario, endereco, cliente_id, products } = req.body;
+    const order = await Order.create({ horario, endereco, cliente_id });
+    for (const product of products) {
+        await PedidoProduto.create({ pedido_id: order.id, produto_id: product.id, preco: product.preco, quantidade: product.quantidade });
+    }
+    res.status(201).json(order);
+};
+
+exports.getAllOrders = async (req, res) => {
+    const orders = await Order.findAll();
+    res.json(orders
+
+);
+};
+
+// src/controllers/adminController.js
+const User = require('../models/user');
+
+exports.getAllUsers = async (req, res) => {
+    const users = await User.findAll();
+    res.json(users);
+};
+```
+
+#### Middlewares
+
+```javascript
+// src/middlewares/auth.js
+const jwt = require('jsonwebtoken');
+
+exports.authenticateToken = (req, res, next) => {
+    const token = req.header('Authorization');
+    if (!token) return res.status(401).json({ error: 'Access denied' });
+
+    try {
+        const verified = jwt.verify(token, 'secret_key');
+        req.user = verified;
+        next();
+    } catch (err) {
+        res.status(400).json({ error: 'Invalid token' });
+    }
+};
+```
+
+#### Rotas
+
+```javascript
+// src/routes/auth.js
+const express = require('express');
+const { register, login } = require('../controllers/authController');
+const router = express.Router();
+
+router.post('/register', register);
+router.post('/login', login);
+
+module.exports = router;
+
+// src/routes/products.js
+const express = require('express');
+const { getAllProducts } = require('../controllers/productController');
+const router = express.Router();
+
+router.get('/', getAllProducts);
+
+module.exports = router;
+
+// src/routes/orders.js
+const express = require('express');
+const { createOrder, getAllOrders } = require('../controllers/orderController');
+const { authenticateToken } = require('../middlewares/auth');
+const router = express.Router();
+
+router.post('/', authenticateToken, createOrder);
+router.get('/', authenticateToken, getAllOrders);
+
+module.exports = router;
+
+// src/routes/admin.js
+const express = require('express');
+const { getAllUsers } = require('../controllers/adminController');
+const { authenticateToken } = require('../middlewares/auth');
+const router = express.Router();
+
+router.get('/users', authenticateToken, getAllUsers);
+
+module.exports = router;
+```
+
+#### Arquivos de Inicialização
 
 ```javascript
 // src/app.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const sequelize = require('./config/db');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
+
 app.use(bodyParser.json());
-
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/admin', adminRoutes);
-
-app.use((err, req, res, next) => {
-    res.status(500).json({ error: err.message });
-});
-
-sequelize.sync({ force: true }).then(() => {
-    console.log('Database & tables created!');
-});
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+app.use('/orders', orderRoutes);
+app.use('/admin', adminRoutes);
 
 module.exports = app;
-```
 
-5. **Inicialização do Servidor:**
-
-```javascript
 // src/server.js
+const sequelize = require('./config/db');
 const app = require('./app');
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+
+sequelize.sync().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
 });
 ```
 
-### Sugestões para o próximo passo:
-**a.** Testar a API utilizando ferramentas como Postman ou Insomnia para garantir que todas as funcionalidades estão corretas.
-**b.** Implementar testes automatizados para verificar a integridade da API e suas funcionalidades.
+### Próximos Passos
+
+1. **a.** Executar o script Python para criar e configurar o banco de dados MySQL.
+2. **b.** Configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados.
+
+Essas etapas garantem que a API está configurada corretamente e que todas as operações CRUD funcionam conforme o esperado.
