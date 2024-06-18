@@ -1,4 +1,4 @@
-Vamos refatorar toda a API para funcionar com base no diagrama ER fornecido e usando MySQL. Primeiro, criaremos um script Python para configurar o banco de dados MySQL localmente. Em seguida, refatoraremos a API para utilizar Sequelize como ORM para interagir com o MySQL.
+## Vamos refatorar toda a API para funcionar com base no diagrama ER fornecido e usando MySQL. Primeiro, criaremos um script Python para configurar o banco de dados MySQL localmente. Em seguida, refatoraremos a API para utilizar Sequelize como ORM para interagir com o MySQL.
 
 ### 1. Script Python para Criação do Banco de Dados
 
@@ -481,7 +481,7 @@ sequelize.sync().then(() => {
 
 Essas etapas garantem que a API está configurada corretamente e que todas as operações CRUD funcionam conforme o esperado.
 
-Para configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados, vamos seguir estes passos:
+## Para configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados, vamos seguir estes passos:
 
 ### 1. Instalar o Dotenv
 
