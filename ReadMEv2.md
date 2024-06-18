@@ -868,7 +868,7 @@ if __name__ == "__main__":
 **a.** Adicionar mais validações e tratamento de erros no frontend para melhorar a experiência do usuário.
 **b.** Implementar autenticação e autorização no frontend para proteger as rotas administrativas.
 
-## Implementação de Autenticação e Autorização no Frontend
+# Implementação de Autenticação e Autorização no Frontend
 
 Para proteger as rotas administrativas no frontend, vamos implementar a autenticação e autorização utilizando JWT. Primeiro, vamos modificar o backend para incluir o campo `role` no token JWT e criar um middleware para verificar o papel do usuário.
 
