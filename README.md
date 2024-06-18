@@ -480,3 +480,128 @@ sequelize.sync().then(() => {
 2. **b.** Configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados.
 
 Essas etapas garantem que a API está configurada corretamente e que todas as operações CRUD funcionam conforme o esperado.
+
+Para configurar variáveis de ambiente para armazenar dados sensíveis como a chave secreta JWT e as credenciais do banco de dados, vamos seguir estes passos:
+
+### 1. Instalar o Dotenv
+
+Primeiro, precisamos instalar a biblioteca `dotenv` para carregar variáveis de ambiente a partir de um arquivo `.env`.
+
+```sh
+npm install dotenv
+```
+
+### 2. Criar um Arquivo `.env`
+
+Na raiz do seu projeto, crie um arquivo chamado `.env` e adicione suas variáveis de ambiente nele. Por exemplo:
+
+```plaintext
+# .env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=online_store
+JWT_SECRET=your_secret_key
+PORT=3000
+```
+
+### 3. Modificar a Configuração do Banco de Dados e JWT para Usar Variáveis de Ambiente
+
+Modifique seus arquivos de configuração e inicialização para usar as variáveis de ambiente.
+
+#### Configuração do Sequelize
+
+```javascript
+// src/config/db.js
+const { Sequelize } = require('sequelize');
+require('dotenv').config();
+
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
+    host: process.env.DB_HOST,
+    dialect: 'mysql'
+});
+
+module.exports = sequelize;
+```
+
+#### Middleware de Autenticação JWT
+
+```javascript
+// src/middlewares/auth.js
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+exports.authenticateToken = (req, res, next) => {
+    const token = req.header('Authorization');
+    if (!token) return res.status(401).json({ error: 'Access denied' });
+
+    try {
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = verified;
+        next();
+    } catch (err) {
+        res.status(400).json({ error: 'Invalid token' });
+    }
+};
+```
+
+#### Controlador de Autenticação
+
+```javascript
+// src/controllers/authController.js
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
+require('dotenv').config();
+
+exports.register = async (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ username, password: hashedPassword });
+    res.json(user);
+};
+
+exports.login = async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ where: { username } });
+    if (!user || !await bcrypt.compare(password, user.password)) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+    res.json({ token });
+};
+```
+
+#### Arquivo de Inicialização do Servidor
+
+```javascript
+// src/server.js
+require('dotenv').config();
+const sequelize = require('./config/db');
+const app = require('./app');
+
+const PORT = process.env.PORT || 3000;
+
+sequelize.sync().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+});
+```
+
+### Verificação
+
+1. **Verificar o `.env`:** Certifique-se de que o arquivo `.env` está corretamente preenchido com os valores necessários.
+2. **Ignorar o `.env` no Controle de Versão:** Adicione o `.env` ao arquivo `.gitignore` para garantir que ele não seja enviado ao controle de versão.
+
+```plaintext
+# .gitignore
+node_modules/
+.env
+```
+
+### Próximos Passos
+
+**a.** Testar a configuração para garantir que todas as variáveis de ambiente estão sendo carregadas corretamente e que a aplicação está funcionando conforme esperado.
+
+**b.** Implementar logs para melhor monitoramento e depuração do servidor.
