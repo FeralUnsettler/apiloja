@@ -1189,3 +1189,101 @@ export default App;
 ### Conclusão
 
 Com estas alterações, a aplicação frontend agora possui a autenticação e autorização utilizando JWT para administradores
+
+
+# Refactoring FIRST
+
+Para refatorar o código `src/App.js` conforme solicitado, substituiremos o conteúdo atual pelo novo conteúdo que utiliza o `react-router-dom` para configurar a navegação entre as diferentes páginas do aplicativo.
+
+Aqui está o novo código:
+
+### src/App.js
+
+```javascript
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import Register from './components/Register';
+import Login from './components/Login';
+import ProductList from './components/ProductList';
+import OrderList from './components/OrderList';
+import AdminProductList from './components/AdminProductList';
+import AdminOrderList from './components/AdminOrderList';
+import './App.css';
+import logo from './logo.svg';
+
+function App() {
+    return (
+        <Router>
+            <div className="App">
+                <header className="App-header">
+                    <img src={logo} className="App-logo" alt="logo" />
+                    <p>Edit <code>src/App.js</code> and save to reload.</p>
+                    <a
+                        className="App-link"
+                        href="https://reactjs.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Learn React
+                    </a>
+                </header>
+                <Switch>
+                    <Route path="/register" component={Register} />
+                    <Route path="/login" component={Login} />
+                    <Route path="/products" component={ProductList} />
+                    <Route path="/orders" component={OrderList} />
+                    <Route path="/admin/products" component={AdminProductList} />
+                    <Route path="/admin/orders" component={AdminOrderList} />
+                </Switch>
+            </div>
+        </Router>
+    );
+}
+
+export default App;
+```
+
+### Componentes Auxiliares
+
+Certifique-se de que você tenha os componentes `Register`, `Login`, `ProductList`, `OrderList`, `AdminProductList` e `AdminOrderList` criados e corretamente exportados na pasta `src/components`.
+
+### Estrutura do Projeto
+
+Sua estrutura de projeto deve parecer com isto:
+
+```
+online-store-frontend/
+|-- public/
+|-- src/
+|   |-- components/
+|   |   |-- Register.js
+|   |   |-- Login.js
+|   |   |-- ProductList.js
+|   |   |-- OrderList.js
+|   |   |-- AdminProductList.js
+|   |   |-- AdminOrderList.js
+|   |-- App.js
+|   |-- App.css
+|   |-- logo.svg
+|-- package.json
+```
+
+### Instalação de Dependências
+
+Certifique-se de que você tenha o `react-router-dom` instalado. Caso não tenha, você pode instalá-lo com o seguinte comando:
+
+```bash
+npm install react-router-dom
+```
+
+### Iniciar o Servidor de Desenvolvimento
+
+Depois de fazer essas mudanças, você pode iniciar o servidor de desenvolvimento para verificar se tudo está funcionando corretamente:
+
+```bash
+npm start
+```
+
+### Conclusão
+
+Com essa refatoração, seu aplicativo React agora usa o `react-router-dom` para gerenciar a navegação entre diferentes componentes de forma mais estruturada e modular. Isso facilita a manutenção e a escalabilidade do código.
