@@ -2,19 +2,12 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 const AdminProductList = () => {
-    const [products,
-
- setProducts] = useState([]);
+    const [products, setProducts] = useState([]);
     const [newProduct, setNewProduct] = useState({ nome: '', preco: '', quantidade: '', categoria_id: '' });
 
     useEffect(() => {
         const fetchProducts = async () => {
-            const token = localStorage.getItem('token');
-            const response = await api.get('/admin/produtos', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await api.get('/admin/produtos');
             setProducts(response.data);
         };
 
@@ -28,15 +21,19 @@ const AdminProductList = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const token = localStorage.getItem('token');
-            await api.post('/admin/produtos', newProduct, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            await api.post('/admin/produtos', newProduct);
             alert('Product added successfully');
         } catch (error) {
             alert('Failed to add product');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await api.delete(`/admin/produtos/${id}`);
+            alert('Product deleted successfully');
+        } catch (error) {
+            alert('Failed to delete product');
         }
     };
 
@@ -60,20 +57,6 @@ const AdminProductList = () => {
             </ul>
         </div>
     );
-};
-
-const handleDelete = async (id) => {
-    try {
-        const token = localStorage.getItem('token');
-        await api.delete(`/admin/produtos/${id}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        alert('Product deleted successfully');
-    } catch (error) {
-        alert('Failed to delete product');
-    }
 };
 
 export default AdminProductList;

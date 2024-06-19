@@ -6,17 +6,21 @@ const AdminOrderList = () => {
 
     useEffect(() => {
         const fetchOrders = async () => {
-            const token = localStorage.getItem('token');
-            const response = await api.get('/admin/pedidos', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await api.get('/admin/pedidos');
             setOrders(response.data);
         };
 
         fetchOrders();
     }, []);
+
+    const handleUpdate = async (id) => {
+        try {
+            await api.put(`/admin/pedidos/${id}`, { status: 'updated' });
+            alert('Order updated successfully');
+        } catch (error) {
+            alert('Failed to update order');
+        }
+    };
 
     return (
         <div>
@@ -31,20 +35,6 @@ const AdminOrderList = () => {
             </ul>
         </div>
     );
-};
-
-const handleUpdate = async (id) => {
-    try {
-        const token = localStorage.getItem('token');
-        await api.put(`/admin/pedidos/${id}`, { status: 'updated' }, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        alert('Order updated successfully');
-    } catch (error) {
-        alert('Failed to update order');
-    }
 };
 
 export default AdminOrderList;

@@ -1287,3 +1287,167 @@ npm start
 ### Conclusão
 
 Com essa refatoração, seu aplicativo React agora usa o `react-router-dom` para gerenciar a navegação entre diferentes componentes de forma mais estruturada e modular. Isso facilita a manutenção e a escalabilidade do código.
+
+---
+##### 16h28 19/06/24
+
+## Para implementar a autenticação e autorização no frontend com base na configuração fornecida, precisamos criar um componente `PrivateRoute` que verifica se o usuário está autenticado e se possui as permissões necessárias para acessar a rota. Vamos implementar isso e garantir que o `src/App.js` esteja correto.
+
+### Implementação do Componente `PrivateRoute`
+
+**src/components/PrivateRoute.js:**
+
+```javascript
+import React from 'react';
+import { Route, Redirect } from 'react-router-dom';
+
+// Função para obter o token JWT do armazenamento local
+const getToken = () => {
+    return localStorage.getItem('token');
+};
+
+// Função para decodificar o token JWT
+const decodeToken = (token) => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        return null;
+    }
+};
+
+const PrivateRoute = ({ component: Component, roles, ...rest }) => (
+    <Route
+        {...rest}
+        render={(props) => {
+            const token = getToken();
+            if (!token) {
+                // Se não houver token, redirecione para a página de login
+                return <Redirect to="/login" />;
+            }
+
+            const user = decodeToken(token);
+            if (roles && roles.indexOf(user.role) === -1) {
+                // Se o usuário não tiver o papel necessário, redirecione para a página de login
+                return <Redirect to="/login" />;
+            }
+
+            // Renderize o componente solicitado se todas as verificações passarem
+            return <Component {...props} />;
+        }}
+    />
+);
+
+export default PrivateRoute;
+```
+
+### Ajuste no `src/App.js`
+
+**src/App.js:**
+
+```javascript
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import Register from './components/Register';
+import Login from './components/Login';
+import ProductList from './components/ProductList';
+import OrderList from './components/OrderList';
+import AdminProductList from './components/AdminProductList';
+import AdminOrderList from './components/AdminOrderList';
+import PrivateRoute from './components/PrivateRoute';
+
+function App() {
+    return (
+        <Router>
+            <Switch>
+                <Route path="/register" component={Register} />
+                <Route path="/login" component={Login} />
+                <PrivateRoute path="/products" component={ProductList} />
+                <PrivateRoute path="/orders" component={OrderList} roles={['client']} />
+                <PrivateRoute path="/admin/products" component={AdminProductList} roles={['admin']} />
+                <PrivateRoute path="/admin/orders" component={AdminOrderList} roles={['admin']} />
+            </Switch>
+        </Router>
+    );
+}
+
+export default App;
+```
+
+### Adicionar Componentes de Placeholder
+
+Certifique-se de que os componentes `Register`, `Login`, `ProductList`, `OrderList`, `AdminProductList` e `AdminOrderList` existam em `src/components/` e estejam exportando corretamente:
+
+**Exemplo de Placeholder para `Login.js`:**
+
+```javascript
+import React, { useState } from 'react';
+import api from '../services/api';
+import { useHistory } from 'react-router-dom';
+
+const Login = () => {
+    const [form, setForm] = useState({ email: '', password: '' });
+    const history = useHistory();
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await api.post('/clientes/login', form);
+            localStorage.setItem('token', response.data.token);
+            alert('Login successful');
+            history.push('/products');
+        } catch (error) {
+            alert('Login failed');
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
+            <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
+            <button type="submit">Login</button>
+        </form>
+    );
+};
+
+export default Login;
+```
+
+### Adicionar Serviço API
+
+**src/services/api.js:**
+
+```javascript
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000';
+
+const api = axios.create({
+    baseURL: API_URL,
+});
+
+api.interceptors.request.use(config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, error => {
+    return Promise.reject(error);
+});
+
+export default api;
+```
+
+### Conclusão
+
+Com estas mudanças, você terá uma aplicação React que usa rotas protegidas (`PrivateRoute`) para garantir que apenas usuários autenticados e autorizados possam acessar determinadas páginas. O componente `PrivateRoute` verifica se o usuário possui um token JWT válido e se o papel do usuário é permitido para acessar a rota.
