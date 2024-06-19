@@ -1,5 +1,4 @@
 
-
 ## API RESTFull
 
 ### Plano Detalhado para a Construção da API
@@ -753,11 +752,9 @@ export default App;
 
 A API e o frontend foram configurados para atender às funcionalidades especificadas. O backend foi implementado com Node.js e Express, enquanto o frontend foi desenvolvido com React. Agora você pode testar a aplicação completa, registrando clientes, fazendo login, visualizando produtos, fazendo pedidos, e utilizando a interface administrativa para gerenciar produtos e pedidos.
 
-
 ## DataBase Creation
 
-
-### script Python tem a funcionalidade de criar um banco de dados MySQL chamado `online_store`, juntamente com várias tabelas necessárias para uma aplicação de loja online. 
+### script Python tem a funcionalidade de criar um banco de dados MySQL chamado `online_store`, juntamente com várias tabelas necessárias para uma aplicação de loja online
 
 ```python
 import os
@@ -861,7 +858,6 @@ if __name__ == "__main__":
 
 **a.** Executar o script melhorado para verificar se ele cria o banco de dados e tabelas corretamente.
 **b.** Adicionar testes unitários para garantir que a conexão com o banco de dados e a criação das tabelas funcionem como esperado.
-
 
 ### Sugestões para Melhorias Futuras
 
@@ -1190,7 +1186,6 @@ export default App;
 
 Com estas alterações, a aplicação frontend agora possui a autenticação e autorização utilizando JWT para administradores
 
-
 # Refactoring FIRST
 
 Para refatorar o código `src/App.js` conforme solicitado, substituiremos o conteúdo atual pelo novo conteúdo que utiliza o `react-router-dom` para configurar a navegação entre as diferentes páginas do aplicativo.
@@ -1289,9 +1284,10 @@ npm start
 Com essa refatoração, seu aplicativo React agora usa o `react-router-dom` para gerenciar a navegação entre diferentes componentes de forma mais estruturada e modular. Isso facilita a manutenção e a escalabilidade do código.
 
 ---
+
 ##### 16h28 19/06/24
 
-## Para implementar a autenticação e autorização no frontend com base na configuração fornecida, precisamos criar um componente `PrivateRoute` que verifica se o usuário está autenticado e se possui as permissões necessárias para acessar a rota. Vamos implementar isso e garantir que o `src/App.js` esteja correto.
+## Para implementar a autenticação e autorização no frontend com base na configuração fornecida, precisamos criar um componente `PrivateRoute` que verifica se o usuário está autenticado e se possui as permissões necessárias para acessar a rota. Vamos implementar isso e garantir que o `src/App.js` esteja correto
 
 ### Implementação do Componente `PrivateRoute`
 
