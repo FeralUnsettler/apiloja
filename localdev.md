@@ -117,7 +117,7 @@ Para rodar o backend e o frontend simultaneamente, você pode configurar tarefas
            "isDefault": true
          },
          "options": {
-           "cwd": "${workspaceFolder}/backend"
+           "cwd": "${workspaceFolder}/online-store-api"
          },
          "problemMatcher": []
        },
@@ -130,7 +130,7 @@ Para rodar o backend e o frontend simultaneamente, você pode configurar tarefas
            "isDefault": true
          },
          "options": {
-           "cwd": "${workspaceFolder}/frontend"
+           "cwd": "${workspaceFolder}/online-store-frontend"
          },
          "problemMatcher": []
        }
